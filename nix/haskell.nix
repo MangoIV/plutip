@@ -1,4 +1,4 @@
-{ src, inputs, pkgs, doCoverage ? false, deferPluginErrors ? true, system, ...
+{ src, inputs, pkgs, pkgs', doCoverage ? false, deferPluginErrors ? true, system, ...
 }:
 
 pkgs.haskell-nix.cabalProject {
@@ -31,11 +31,9 @@ pkgs.haskell-nix.cabalProject {
         cardano-ledger-shelley-ma
         cardano-prelude
         cardano-slotting
-        filemanip
         flat
         freer-extras
         goblins
-        ieee
         measures
         orphans-deriving-via
         playground-common
@@ -58,17 +56,15 @@ pkgs.haskell-nix.cabalProject {
 
     withHoogle = true;
 
-    tools = {
-      cabal = "latest";
-      haskell-language-server = "latest";
-    };
+    tools.haskell-language-server = "latest";
 
     exactDeps = true;
 
-    nativeBuildInputs = with pkgs;
+    nativeBuildInputs = with pkgs';
       [
         # Haskell Tools
         haskellPackages.fourmolu
+        haskellPackages.cabal-install
         hlint
         entr
         ghcid
@@ -81,9 +77,9 @@ pkgs.haskell-nix.cabalProject {
         # Graphviz Diagrams for documentation
         graphviz
         pkg-config
-        libsodium-vrf
 
         # Cardano tools
+        # FIXME: use project.hsPkgs.cardano-node.components.executables.<something>
         inputs.cardano-node.packages.${system}.cardano-node
         inputs.cardano-node.packages.${system}.cardano-cli
       ] ++ (lib.optionals (!stdenv.isDarwin) [
@@ -108,9 +104,6 @@ pkgs.haskell-nix.cabalProject {
 
       plutus-ledger.doHaddock = deferPluginErrors;
       plutus-ledger.flags.defer-plugin-errors = deferPluginErrors;
-
-      # see https://github.com/input-output-hk/haskell.nix/issues/1128
-      ieee.components.library.libs = pkgs.lib.mkForce [ ];
 
       cardano-crypto-praos.components.library.pkgconfig =
         pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
@@ -150,24 +143,25 @@ pkgs.haskell-nix.cabalProject {
     {
       src = inputs.cardano-ledger;
       subdirs = [
-        "byron/ledger/impl"
-        "cardano-ledger-core"
-        "cardano-protocol-tpraos"
         "eras/alonzo/impl"
         "eras/byron/chain/executable-spec"
         "eras/byron/crypto"
         "eras/byron/crypto/test"
         "eras/byron/ledger/executable-spec"
+        "eras/byron/ledger/impl"
         "eras/byron/ledger/impl/test"
         "eras/shelley/impl"
         "eras/shelley-ma/impl"
-        "eras/shelley/chain-and-ledger/executable-spec"
         "eras/shelley/test-suite"
-        "shelley/chain-and-ledger/shelley-spec-ledger-test"
-        "libs/non-integral"
-        "libs/small-steps"
+        "libs/cardano-data"
+        "libs/cardano-ledger-core"
         "libs/cardano-ledger-pretty"
-        "semantics/small-steps-test"
+        "libs/cardano-protocol-tpraos"
+        "libs/compact-map"
+        "libs/non-integral"
+        "libs/set-algebra"
+        "libs/small-steps"
+        "libs/small-steps-test"
       ];
     }
     {
@@ -185,16 +179,16 @@ pkgs.haskell-nix.cabalProject {
     {
       src = inputs.cardano-wallet;
       subdirs = [
-        "lib/dbvar"
-        "lib/text-class"
-        "lib/strict-non-empty-containers"
-        "lib/core"
-        "lib/test-utils"
-        "lib/numeric"
-        "lib/launcher"
-        "lib/core-integration"
         "lib/cli"
+        "lib/core"
+        "lib/core-integration"
+        "lib/dbvar"
+        "lib/launcher"
+        "lib/numeric"
         "lib/shelley"
+        "lib/strict-non-empty-containers"
+        "lib/test-utils"
+        "lib/text-class"
       ];
     }
     {
@@ -225,21 +219,23 @@ pkgs.haskell-nix.cabalProject {
     {
       src = inputs.ouroboros-network;
       subdirs = [
+        "io-classes"
+        "io-sim"
         "monoidal-synchronisation"
-        "typed-protocols"
-        "typed-protocols-cborg"
-        "typed-protocols-examples"
-        "ouroboros-network"
-        "ouroboros-network-testing"
-        "ouroboros-network-framework"
+        "network-mux"
+        "ntp-client"
         "ouroboros-consensus"
         "ouroboros-consensus-byron"
         "ouroboros-consensus-cardano"
+        "ouroboros-consensus-protocol"
         "ouroboros-consensus-shelley"
-        "io-sim"
-        "io-classes"
-        "network-mux"
-        "ntp-client"
+        "ouroboros-network"
+        "ouroboros-network-framework"
+        "ouroboros-network-testing"
+        "strict-stm"
+        "typed-protocols"
+        "typed-protocols-cborg"
+        "typed-protocols-examples"
       ];
     }
     {
@@ -263,8 +259,8 @@ pkgs.haskell-nix.cabalProject {
         "plutus-chain-index"
         "plutus-chain-index-core"
         "plutus-contract"
-        "plutus-ledger-constraints"
         "plutus-ledger"
+        "plutus-ledger-constraints"
         "plutus-pab"
         "plutus-playground-server"
         "plutus-use-cases"
@@ -282,10 +278,6 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.Win32-network;
-      subdirs = [ "." ];
-    }
-    {
-      src = inputs.bot-plutus-interface;
       subdirs = [ "." ];
     }
     {
